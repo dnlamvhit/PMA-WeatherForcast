@@ -32,6 +32,9 @@ def kill_port(port: int):
 
 
 def main():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    venv_python = os.path.join(script_dir, ".venv", "Scripts", "python.exe")
+
     print("🚀 Starting Weather App (Frontend + Backend)...")
 
     # Kill any stale servers from previous runs
@@ -41,12 +44,12 @@ def main():
     time.sleep(1)  # brief pause to let OS release ports
 
     # 1. Start Backend (FastAPI)
-    backend_cmd = f'"{os.path.join(".venv", "Scripts", "python")}" -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload'
+    backend_cmd = f'"{venv_python}" -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload'
     print(f"📡 Starting Backend on http://localhost:8000")
-    backend_proc = subprocess.Popen(backend_cmd, shell=True)
+    backend_proc = subprocess.Popen(backend_cmd, shell=True, cwd=script_dir)
 
     # 2. Start Frontend (Next.js)
-    frontend_dir = os.path.join(os.getcwd(), "frontend")
+    frontend_dir = os.path.join(script_dir, "frontend")
     print(f"💻 Starting Frontend on http://localhost:3000")
     frontend_proc = subprocess.Popen("npm run dev", shell=True, cwd=frontend_dir)
 
