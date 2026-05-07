@@ -38,14 +38,14 @@ def main():
     print("🚀 Starting Weather App (Frontend + Backend)...")
 
     # Kill any stale servers from previous runs
-    print("🧹 Clearing ports 8000 and 3000...")
-    kill_port(8000)
+    print("🧹 Clearing ports 8888 and 3000...")
+    kill_port(8888)
     kill_port(3000)
     time.sleep(1)  # brief pause to let OS release ports
 
     # 1. Start Backend (FastAPI)
-    backend_cmd = f'"{venv_python}" -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload'
-    print(f"📡 Starting Backend on http://localhost:8000")
+    backend_cmd = f'"{venv_python}" -m uvicorn backend.main:app --host 0.0.0.0 --port 8888 --reload'
+    print(f"📡 Starting Backend on http://localhost:8888")
     backend_proc = subprocess.Popen(backend_cmd, shell=True, cwd=script_dir)
 
     # 2. Start Frontend (Next.js)

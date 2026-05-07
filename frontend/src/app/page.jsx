@@ -62,6 +62,70 @@ const WEATHER_ICONS = {
   95: "⛈️", 96: "⛈️", 99: "⛈️"
 };
 
+const WEATHER_CONDITIONS = {
+  0: { label: "Clear sky", emoji: "☀️" },
+  1: { label: "Mainly clear", emoji: "🌤️" },
+  2: { label: "Partly cloudy", emoji: "⛅" },
+  3: { label: "Overcast", emoji: "☁️" },
+  45: { label: "Foggy", emoji: "🌫️" },
+  48: { label: "Depositing rime fog", emoji: "🌫️" },
+  51: { label: "Light drizzle", emoji: "🌦️" },
+  53: { label: "Moderate drizzle", emoji: "🌦️" },
+  55: { label: "Dense drizzle", emoji: "🌧️" },
+  56: { label: "Light freezing drizzle", emoji: "❄️" },
+  57: { label: "Dense freezing drizzle", emoji: "❄️" },
+  61: { label: "Slight rain", emoji: "🌧️" },
+  63: { label: "Moderate rain", emoji: "🌧️" },
+  65: { label: "Heavy rain", emoji: "⛈️" },
+  66: { label: "Light freezing rain", emoji: "🧊" },
+  67: { label: "Heavy freezing rain", emoji: "🧊" },
+  71: { label: "Slight snow fall", emoji: "🌨️" },
+  73: { label: "Moderate snow fall", emoji: "🌨️" },
+  75: { label: "Heavy snow fall", emoji: "🌨️" },
+  77: { label: "Snow grains", emoji: "🌨️" },
+  80: { label: "Slight rain showers", emoji: "🌧️" },
+  81: { label: "Moderate rain showers", emoji: "⛈️" },
+  82: { label: "Violent rain showers", emoji: "⛈️" },
+  85: { label: "Slight snow showers", emoji: "🌨️" },
+  86: { label: "Heavy snow showers", emoji: "🌨️" },
+  95: { label: "Thunderstorm", emoji: "⛈️" },
+  96: { label: "Thunderstorm with slight hail", emoji: "⛈️" },
+  99: { label: "Thunderstorm with heavy hail", emoji: "⛈️" },
+};
+
+// Notification Component
+const Notification = ({ message, type = "info" }) => {
+  const bgColor = {
+    info: "bg-blue-500/20 border-blue-500/50",
+    loading: "bg-yellow-500/20 border-yellow-500/50",
+    success: "bg-green-500/20 border-green-500/50",
+    error: "bg-red-500/20 border-red-500/50",
+  }[type];
+
+  const textColor = {
+    info: "text-blue-200",
+    loading: "text-yellow-200",
+    success: "text-green-200",
+    error: "text-red-200",
+  }[type];
+
+  const icon = {
+    info: "ℹ️",
+    loading: "⏳",
+    success: "✓",
+    error: "✕",
+  }[type];
+
+  return (
+    <div className={`fixed top-8 right-8 max-w-sm border ${bgColor} ${textColor} p-4 rounded-xl shadow-2xl flex gap-4 items-center z-40 animate-in fade-in slide-in-from-right-4`}>
+      <span className="text-2xl flex-shrink-0">{icon}</span>
+      <div className="flex-1">
+        <p className="text-sm font-medium">{message}</p>
+      </div>
+    </div>
+  );
+};
+
 export default function Home() {
   const [location, setLocation] = useState("");
   const [weather, setWeather] = useState(null);
@@ -78,12 +142,15 @@ export default function Home() {
   const [exportStartDate, setExportStartDate] = useState("");
   const [exportEndDate, setExportEndDate] = useState("");
   const [availableLocations, setAvailableLocations] = useState([]);
+  const [notification, setNotification] = useState(null);
+  const [geoLoading, setGeoLoading] = useState(false);
 
   const fetchWeather = async (searchLocation) => {
     const loc = searchLocation || location;
     if (!loc || !loc.trim()) return;
     setLoading(true);
     setError("");
+    setNotification({ message: `🌤️ Fetching weather for ${loc}...`, type: "loading" });
     try {
       const res = await fetch("http://localhost:8000/api/weather", {
         method: "POST",
@@ -98,8 +165,14 @@ export default function Home() {
       }
       const data = await res.json();
       setWeather(data);
+      setNotification({ message: "✓ Weather data loaded successfully!", type: "success" });
+      // Auto-dismiss success notification after 2 seconds
+      setTimeout(() => setNotification(null), 2000);
     } catch (err) {
       setError(err.message);
+      setNotification({ message: `✕ Error: ${err.message}`, type: "error" });
+      // Auto-dismiss error notification after 3 seconds
+      setTimeout(() => setNotification(null), 3000);
     } finally {
       setLoading(false);
     }
@@ -110,12 +183,16 @@ export default function Home() {
     let mounted = true;
 
     if ("geolocation" in navigator) {
+      setGeoLoading(true);
+      setNotification({ message: "🔍 Detecting your location...", type: "loading" });
+
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           if (!mounted) return;
           const { latitude, longitude } = position.coords;
           try {
             // Reverse geocoding to get a city name via our backend to avoid CORS/UA issues
+            setNotification({ message: "📍 Finding your city name...", type: "loading" });
             const res = await fetch(`http://localhost:8000/api/reverse-geocode?lat=${latitude}&lon=${longitude}`);
             if (!res.ok) throw new Error("Reverse geocoding failed");
             const data = await res.json();
@@ -124,7 +201,9 @@ export default function Home() {
               setLocation(city);
               // Fetch weather with the city name directly
               setLoading(true);
+              setGeoLoading(false);
               setError("");
+              setNotification({ message: `🌤️ Fetching weather data for ${city}...`, type: "loading" });
               try {
                 const weatherRes = await fetch("http://localhost:8000/api/weather", {
                   method: "POST",
@@ -138,21 +217,59 @@ export default function Home() {
                   throw new Error(errorData.detail || "An unexpected error occurred.");
                 }
                 const weatherData = await weatherRes.json();
-                if (mounted) setWeather(weatherData);
+                if (mounted) {
+                  setWeather(weatherData);
+                  setNotification({ message: "✓ Weather data loaded successfully!", type: "success" });
+                  // Auto-dismiss success notification after 2 seconds
+                  setTimeout(() => {
+                    if (mounted) setNotification(null);
+                  }, 2000);
+                }
               } catch (err) {
-                if (mounted) setError(err.message);
+                if (mounted) {
+                  setError(err.message);
+                  setNotification({ message: `✕ Error: ${err.message}`, type: "error" });
+                  // Auto-dismiss error notification after 3 seconds
+                  setTimeout(() => {
+                    if (mounted) setNotification(null);
+                  }, 3000);
+                }
               } finally {
                 if (mounted) setLoading(false);
               }
             }
           } catch (err) {
             console.error("Error getting location or weather:", err);
+            if (mounted) {
+              setGeoLoading(false);
+              setNotification({ message: `✕ Error: ${err.message}`, type: "error" });
+              // Auto-dismiss error notification after 3 seconds
+              setTimeout(() => {
+                if (mounted) setNotification(null);
+              }, 3000);
+            }
           }
         },
         (err) => {
           console.error("Geolocation error:", err);
+          if (mounted) {
+            setGeoLoading(false);
+            setNotification({ message: "✕ Unable to detect location. Please enter manually.", type: "error" });
+            // Auto-dismiss error notification after 3 seconds
+            setTimeout(() => {
+              if (mounted) setNotification(null);
+            }, 3000);
+          }
         }
       );
+    } else {
+      if (mounted) {
+        setNotification({ message: "✕ Geolocation is not supported by your browser.", type: "error" });
+        // Auto-dismiss error notification after 3 seconds
+        setTimeout(() => {
+          if (mounted) setNotification(null);
+        }, 3000);
+      }
     }
 
     return () => {
@@ -260,6 +377,7 @@ export default function Home() {
   return (
     <>
       <style>{dateInputStyle}</style>
+      {notification && <Notification message={notification.message} type={notification.type} />}
       <div className="min-h-screen bg-gradient-to-br from-blue-900 to-slate-800 text-white p-8">
         <div className="max-w-4xl mx-auto space-y-8">
           <header className="text-center space-y-4">
@@ -335,6 +453,11 @@ export default function Home() {
                         };
                         return forecast.time?.slice(1, 6).map((date, i) => {
                           const dataIndex = i + 1;
+                          const forecastCode = forecast.weather_code?.[dataIndex];
+                          const forecastCondition = WEATHER_CONDITIONS[forecastCode] || {
+                            label: "Unknown conditions",
+                            emoji: "🌤️",
+                          };
                           return (
                             <div key={date} className="bg-white/5 rounded-xl p-4 text-center hover:bg-white/10 transition-colors">
                               <p className="text-base font-bold text-slate-300 mb-3">{formatDate(date)}</p>
@@ -344,6 +467,8 @@ export default function Home() {
                               <p className="text-base font-bold text-white/90 mb-1">
                                 {forecast.temperature_2m_min?.[dataIndex]}°C {" - "} {forecast.temperature_2m_max?.[dataIndex]}°C
                               </p>
+                              <p className="text-sm font-semibold text-blue-200 mt-3">{forecastCondition.label}</p>
+                              <p className="text-3xl leading-none mt-1">{forecastCondition.emoji}</p>
                             </div>
                           );
                         });
@@ -390,13 +515,13 @@ export default function Home() {
           {showDbModal && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
               <div className="bg-slate-900 rounded-3xl shadow-2xl border border-white/20 w-full max-h-[90vh] flex flex-col">
-                <div className="p-8 border-b border-white/20 flex justify-between items-center flex-shrink-0">
+                <div className="p-8 border-b border-white/20 flex items-center justify-between flex-shrink-0">
                   <h2 className="text-2xl font-bold text-white">Database Management</h2>
                   <button
                     onClick={() => setShowDbModal(false)}
-                    className="text-white/60 hover:text-white text-2xl"
+                    className="text-2xl font-bold text-white hover:text-white/80 transition-colors"
                   >
-                    ✕
+                    Close
                   </button>
                 </div>
 

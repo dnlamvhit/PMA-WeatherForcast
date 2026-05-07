@@ -1,5 +1,20 @@
 .venv/
 .env
+.env.local
 __pycache__/
 *.pyc
 .vscode/
+
+# Docker volumes and temporary files
+backend_db/
+backend/data/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
