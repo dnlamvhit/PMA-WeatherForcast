@@ -173,57 +173,91 @@ def delete_weather(record_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Deleted successfully"}
 
-# Exports
+# Exports with optional location and date range filters
+def build_export_query(db: Session, location: str = None, start_date: str = None, end_date: str = None):
+    """Build a filtered query for export based on location and date range"""
+    query = db.query(models.WeatherRecord)
+    
+    if location:
+        query = query.filter(models.WeatherRecord.location.ilike(f"%{location}%"))
+    
+    if start_date:
+        query = query.filter(models.WeatherRecord.date >= start_date)
+    
+    if end_date:
+        query = query.filter(models.WeatherRecord.date <= end_date)
+    
+    return query.all()
+
 @app.get("/api/export/csv")
-def export_csv(db: Session = Depends(get_db)):
-    records = db.query(models.WeatherRecord).all()
+def export_csv(location: str = None, start_date: str = None, end_date: str = None, db: Session = Depends(get_db)):
+    records = build_export_query(db, location, start_date, end_date)
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["ID", "Location", "Date", "Min Temperature (K)", "Max Temperature (K)", "Description", "Timestamp"])
     for r in records:
         writer.writerow([r.id, r.location, r.date, r.min_temperature_k, r.max_temperature_k, r.description, r.timestamp])
     
-    return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=weather_export.csv"})
+    filename = f"weather_export{'_' + location if location else ''}{'_' + start_date if start_date else ''}.csv"
+    return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 @app.get("/api/export/json")
-def export_json(db: Session = Depends(get_db)):
-    records = db.query(models.WeatherRecord).all()
+def export_json(location: str = None, start_date: str = None, end_date: str = None, db: Session = Depends(get_db)):
+    records = build_export_query(db, location, start_date, end_date)
     data = [{"id": r.id, "location": r.location, "date": r.date, "min_temperature_k": r.min_temperature_k, "max_temperature_k": r.max_temperature_k, "description": r.description, "timestamp": r.timestamp.isoformat() if r.timestamp else None} for r in records]
-    return Response(content=json.dumps(data), media_type="application/json", headers={"Content-Disposition": "attachment; filename=weather_export.json"})
+    filename = f"weather_export{'_' + location if location else ''}{'_' + start_date if start_date else ''}.json"
+    return Response(content=json.dumps(data), media_type="application/json", headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 @app.get("/api/export/xml")
-def export_xml(db: Session = Depends(get_db)):
-    records = db.query(models.WeatherRecord).all()
+def export_xml(location: str = None, start_date: str = None, end_date: str = None, db: Session = Depends(get_db)):
+    records = build_export_query(db, location, start_date, end_date)
     xml_str = "<records>"
     for r in records:
         xml_str += f"<record><id>{r.id}</id><location>{r.location}</location><date>{r.date}</date><min_temperature_k>{r.min_temperature_k}</min_temperature_k><max_temperature_k>{r.max_temperature_k}</max_temperature_k><description>{r.description}</description><timestamp>{r.timestamp.isoformat() if r.timestamp else ''}</timestamp></record>"
     xml_str += "</records>"
-    return Response(content=xml_str, media_type="application/xml", headers={"Content-Disposition": "attachment; filename=weather_export.xml"})
+    filename = f"weather_export{'_' + location if location else ''}{'_' + start_date if start_date else ''}.xml"
+    return Response(content=xml_str, media_type="application/xml", headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 @app.get("/api/export/markdown")
-def export_markdown(db: Session = Depends(get_db)):
-    records = db.query(models.WeatherRecord).all()
+def export_markdown(location: str = None, start_date: str = None, end_date: str = None, db: Session = Depends(get_db)):
+    records = build_export_query(db, location, start_date, end_date)
     md_str = "# Weather Records\n\n| ID | Location | Date | Min Temperature (K) | Max Temperature (K) | Description | Timestamp |\n|---|---|---|---|---|---|---|\n"
     for r in records:
         md_str += f"| {r.id} | {r.location} | {r.date} | {r.min_temperature_k} | {r.max_temperature_k} | {r.description} | {r.timestamp.isoformat() if r.timestamp else ''} |\n"
-    return Response(content=md_str, media_type="text/markdown", headers={"Content-Disposition": "attachment; filename=weather_export.md"})
+    filename = f"weather_export{'_' + location if location else ''}{'_' + start_date if start_date else ''}.md"
+    return Response(content=md_str, media_type="text/markdown", headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 @app.get("/api/export/pdf")
-def export_pdf(db: Session = Depends(get_db)):
+def export_pdf(location: str = None, start_date: str = None, end_date: str = None, db: Session = Depends(get_db)):
     try:
         from fpdf import FPDF
     except ImportError:
         raise HTTPException(status_code=500, detail="fpdf2 is not installed")
     
-    records = db.query(models.WeatherRecord).all()
+    records = build_export_query(db, location, start_date, end_date)
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt="Weather Records", ln=1, align='C')
+    
+    title = "Weather Records"
+    if location or start_date or end_date:
+        title += " (Filtered)"
+    pdf.cell(200, 10, txt=title, ln=1, align='C')
+    
+    if location:
+        pdf.cell(200, 10, txt=f"Location: {location}", ln=1)
+    if start_date and end_date:
+        pdf.cell(200, 10, txt=f"Date Range: {start_date} to {end_date}", ln=1)
+    elif start_date:
+        pdf.cell(200, 10, txt=f"From: {start_date}", ln=1)
+    elif end_date:
+        pdf.cell(200, 10, txt=f"Until: {end_date}", ln=1)
+    
+    pdf.ln(5)
     
     for r in records:
         pdf.cell(200, 10, txt=f"ID: {r.id}, Location: {r.location}, Date: {r.date}, Min: {r.min_temperature_k}K, Max: {r.max_temperature_k}K", ln=1)
-        
-    pdf_path = "weather_export.pdf"
-    pdf.output(pdf_path)
-    return FileResponse(pdf_path, media_type="application/pdf", filename="weather_export.pdf")
+    
+    filename = f"weather_export{'_' + location if location else ''}{'_' + start_date if start_date else ''}.pdf"
+    pdf.output(filename)
+    return FileResponse(filename, media_type="application/pdf", filename=filename)

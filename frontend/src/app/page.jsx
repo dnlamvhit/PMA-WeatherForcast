@@ -29,6 +29,9 @@ export default function Home() {
   const [selectedRecords, setSelectedRecords] = useState(new Set());
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({});
+  const [exportLocation, setExportLocation] = useState("");
+  const [exportStartDate, setExportStartDate] = useState("");
+  const [exportEndDate, setExportEndDate] = useState("");
 
   const fetchWeather = async (searchLocation) => {
     const loc = searchLocation || location;
@@ -112,7 +115,14 @@ export default function Home() {
   }, []);
 
   const downloadExport = (format) => {
-    window.open(`http://localhost:8000/api/export/${format}`);
+    const params = new URLSearchParams();
+    if (exportLocation) params.append("location", exportLocation);
+    if (exportStartDate) params.append("start_date", exportStartDate);
+    if (exportEndDate) params.append("end_date", exportEndDate);
+    
+    const queryString = params.toString();
+    const url = `http://localhost:8000/api/export/${format}${queryString ? '?' + queryString : ''}`;
+    window.open(url);
   };
 
   const fetchDbRecords = async () => {
@@ -342,6 +352,88 @@ export default function Home() {
                   </div>
                 )}
 
+                <div className="bg-blue-600/20 border border-blue-500/50 rounded-xl p-6 space-y-4">
+                  <h3 className="text-lg font-semibold text-blue-300">Export Data</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">Location (Optional)</label>
+                      <input
+                        type="text"
+                        value={exportLocation}
+                        onChange={(e) => setExportLocation(e.target.value)}
+                        placeholder="e.g., New York"
+                        className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">Start Date (Optional)</label>
+                      <input
+                        type="date"
+                        value={exportStartDate}
+                        onChange={(e) => setExportStartDate(e.target.value)}
+                        className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">End Date (Optional)</label>
+                      <input
+                        type="date"
+                        value={exportEndDate}
+                        onChange={(e) => setExportEndDate(e.target.value)}
+                        className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      />
+                    </div>
+                  </div>
+                  {(exportLocation || exportStartDate || exportEndDate) && (
+                    <button
+                      onClick={() => {
+                        setExportLocation("");
+                        setExportStartDate("");
+                        setExportEndDate("");
+                      }}
+                      className="text-sm text-blue-300 hover:text-blue-200 underline"
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                  
+                  <div className="border-t border-blue-500/30 pt-4 mt-4">
+                    <p className="text-sm font-medium text-blue-200 mb-3">Export Format:</p>
+                    <div className="flex gap-2 flex-wrap">
+                      <button
+                        onClick={() => downloadExport('csv')}
+                        className="bg-green-600 hover:bg-green-700 px-3 py-2 rounded-lg text-white text-sm font-medium"
+                      >
+                        CSV
+                      </button>
+                      <button
+                        onClick={() => downloadExport('json')}
+                        className="bg-green-600 hover:bg-green-700 px-3 py-2 rounded-lg text-white text-sm font-medium"
+                      >
+                        JSON
+                      </button>
+                      <button
+                        onClick={() => downloadExport('xml')}
+                        className="bg-green-600 hover:bg-green-700 px-3 py-2 rounded-lg text-white text-sm font-medium"
+                      >
+                        XML
+                      </button>
+                      <button
+                        onClick={() => downloadExport('pdf')}
+                        className="bg-green-600 hover:bg-green-700 px-3 py-2 rounded-lg text-white text-sm font-medium"
+                      >
+                        PDF
+                      </button>
+                      <button
+                        onClick={() => downloadExport('markdown')}
+                        className="bg-green-600 hover:bg-green-700 px-3 py-2 rounded-lg text-white text-sm font-medium"
+                      >
+                        Markdown
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {dbLoading ? (
                   <p className="text-center text-white/60">Loading records...</p>
                 ) : dbRecords.length === 0 ? (
@@ -369,36 +461,6 @@ export default function Home() {
                           Delete Selected ({selectedRecords.size})
                         </button>
                       )}
-                      <button
-                        onClick={() => downloadExport('csv')}
-                        className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white text-sm font-medium"
-                      >
-                        Export as CSV
-                      </button>
-                      <button
-                        onClick={() => downloadExport('json')}
-                        className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white text-sm font-medium"
-                      >
-                        Export as JSON
-                      </button>
-                      <button
-                        onClick={() => downloadExport('xml')}
-                        className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white text-sm font-medium"
-                      >
-                        Export as XML
-                      </button>
-                      <button
-                        onClick={() => downloadExport('pdf')}
-                        className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white text-sm font-medium"
-                      >
-                        Export as PDF
-                      </button>
-                      <button
-                        onClick={() => downloadExport('markdown')}
-                        className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white text-sm font-medium"
-                      >
-                        Export as Markdown
-                      </button>
                     </div>
 
                     <div className="overflow-x-auto border border-white/10 rounded-lg">
