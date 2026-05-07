@@ -173,6 +173,12 @@ def delete_weather(record_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Deleted successfully"}
 
+@app.get("/api/locations")
+def get_locations(db: Session = Depends(get_db)):
+    """Get all unique locations from the database"""
+    locations = db.query(models.WeatherRecord.location).distinct().order_by(models.WeatherRecord.location).all()
+    return {"locations": [loc[0] for loc in locations]}
+
 # Exports with optional location and date range filters
 def build_export_query(db: Session, location: str = None, start_date: str = None, end_date: str = None):
     """Build a filtered query for export based on location and date range"""
