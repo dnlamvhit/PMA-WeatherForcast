@@ -55,8 +55,8 @@ Start both the frontend and backend with a single command from the root director
 python run.py
 ```
 This will:
-- Clean up any lingering processes on ports 3000 and 8000
-- Start the FastAPI backend on `http://localhost:8000`
+- Clean up any lingering processes on ports 3000 and 8888
+- Start the FastAPI backend on `http://localhost:8888`
 - Start the Next.js frontend on `http://localhost:3000`
 - Display status messages as each service starts
 
@@ -69,7 +69,7 @@ If you prefer to see separate logs for debugging, use two terminals:
 ```powershell
 uvicorn backend.main:app --reload
 ```
-The backend will run on `http://localhost:8000`
+The backend will run on `http://localhost:8888`
 
 **Terminal 2 - Frontend (Next.js):**
 ```powershell

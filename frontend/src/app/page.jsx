@@ -152,7 +152,7 @@ export default function Home() {
     setError("");
     setNotification({ message: `🌤️ Fetching weather for ${loc}...`, type: "loading" });
     try {
-      const res = await fetch("http://localhost:8000/api/weather", {
+      const res = await fetch("http://localhost:8888/api/weather", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -193,7 +193,7 @@ export default function Home() {
           try {
             // Reverse geocoding to get a city name via our backend to avoid CORS/UA issues
             setNotification({ message: "📍 Finding your city name...", type: "loading" });
-            const res = await fetch(`http://localhost:8000/api/reverse-geocode?lat=${latitude}&lon=${longitude}`);
+            const res = await fetch(`http://localhost:8888/api/reverse-geocode?lat=${latitude}&lon=${longitude}`);
             if (!res.ok) throw new Error("Reverse geocoding failed");
             const data = await res.json();
             const city = data.address?.city || data.address?.town || data.address?.village || data.address?.state || "Your Location";
@@ -205,7 +205,7 @@ export default function Home() {
               setError("");
               setNotification({ message: `🌤️ Fetching weather data for ${city}...`, type: "loading" });
               try {
-                const weatherRes = await fetch("http://localhost:8000/api/weather", {
+                const weatherRes = await fetch("http://localhost:8888/api/weather", {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -284,7 +284,7 @@ export default function Home() {
     if (exportEndDate) params.append("end_date", exportEndDate);
 
     const queryString = params.toString();
-    const url = `http://localhost:8000/api/export/${format}${queryString ? '?' + queryString : ''}`;
+    const url = `http://localhost:8888/api/export/${format}${queryString ? '?' + queryString : ''}`;
     window.open(url);
   };
 
@@ -292,7 +292,7 @@ export default function Home() {
     setDbLoading(true);
     setDbError("");
     try {
-      const res = await fetch("http://localhost:8000/api/weather", {
+      const res = await fetch("http://localhost:8888/api/weather", {
         method: "GET",
       });
       if (!res.ok) throw new Error("Failed to fetch records");
@@ -301,7 +301,7 @@ export default function Home() {
       setSelectedRecords(new Set());
 
       // Fetch available locations
-      const locRes = await fetch("http://localhost:8000/api/locations");
+      const locRes = await fetch("http://localhost:8888/api/locations");
       if (locRes.ok) {
         const locData = await locRes.json();
         setAvailableLocations(locData.locations);
@@ -324,8 +324,11 @@ export default function Home() {
   };
 
   const handleEditSave = async (recordId) => {
+    const confirmMsg = `Confirm update for record ${recordId}?\nChanges:\n${JSON.stringify(editData, null, 2)}`;
+    if (!window.confirm(confirmMsg)) return;
+
     try {
-      const res = await fetch(`http://localhost:8000/api/weather/${recordId}`, {
+      const res = await fetch(`http://localhost:8888/api/weather/${recordId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editData),
@@ -339,8 +342,9 @@ export default function Home() {
   };
 
   const handleDelete = async (recordId) => {
+    if (!window.confirm(`Delete record ${recordId}? This action cannot be undone.`)) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/weather/${recordId}`, {
+      const res = await fetch(`http://localhost:8888/api/weather/${recordId}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete record");

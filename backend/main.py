@@ -1,6 +1,9 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, FileResponse
+from fastapi.responses import Response, FileResponse, StreamingResponse
+import tempfile
+import re
+import tempfile
 from sqlalchemy.orm import Session
 import requests
 import json
@@ -205,14 +208,20 @@ def export_csv(location: str = None, start_date: str = None, end_date: str = Non
         writer.writerow([r.id, r.location, r.date, r.min_temperature_k, r.max_temperature_k, r.description, r.timestamp])
     
     filename = f"weather_export{'_' + location if location else ''}{'_' + start_date if start_date else ''}.csv"
-    return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": f"attachment; filename={filename}"})
+    safe_filename = re.sub(r"[^A-Za-z0-9_.-]", "_", filename)
+    stream = io.StringIO(output.getvalue())
+    headers = {"Content-Disposition": f'attachment; filename="{safe_filename}"'}
+    return StreamingResponse(stream, media_type="text/csv", headers=headers)
 
 @app.get("/api/export/json")
 def export_json(location: str = None, start_date: str = None, end_date: str = None, db: Session = Depends(get_db)):
     records = build_export_query(db, location, start_date, end_date)
     data = [{"id": r.id, "location": r.location, "date": r.date, "min_temperature_k": r.min_temperature_k, "max_temperature_k": r.max_temperature_k, "description": r.description, "timestamp": r.timestamp.isoformat() if r.timestamp else None} for r in records]
     filename = f"weather_export{'_' + location if location else ''}{'_' + start_date if start_date else ''}.json"
-    return Response(content=json.dumps(data), media_type="application/json", headers={"Content-Disposition": f"attachment; filename={filename}"})
+    safe_filename = re.sub(r"[^A-Za-z0-9_.-]", "_", filename)
+    stream = io.StringIO(json.dumps(data))
+    headers = {"Content-Disposition": f'attachment; filename="{safe_filename}"'}
+    return StreamingResponse(stream, media_type="application/json", headers=headers)
 
 @app.get("/api/export/xml")
 def export_xml(location: str = None, start_date: str = None, end_date: str = None, db: Session = Depends(get_db)):
@@ -222,7 +231,10 @@ def export_xml(location: str = None, start_date: str = None, end_date: str = Non
         xml_str += f"<record><id>{r.id}</id><location>{r.location}</location><date>{r.date}</date><min_temperature_k>{r.min_temperature_k}</min_temperature_k><max_temperature_k>{r.max_temperature_k}</max_temperature_k><description>{r.description}</description><timestamp>{r.timestamp.isoformat() if r.timestamp else ''}</timestamp></record>"
     xml_str += "</records>"
     filename = f"weather_export{'_' + location if location else ''}{'_' + start_date if start_date else ''}.xml"
-    return Response(content=xml_str, media_type="application/xml", headers={"Content-Disposition": f"attachment; filename={filename}"})
+    safe_filename = re.sub(r"[^A-Za-z0-9_.-]", "_", filename)
+    stream = io.StringIO(xml_str)
+    headers = {"Content-Disposition": f'attachment; filename="{safe_filename}"'}
+    return StreamingResponse(stream, media_type="application/xml", headers=headers)
 
 @app.get("/api/export/markdown")
 def export_markdown(location: str = None, start_date: str = None, end_date: str = None, db: Session = Depends(get_db)):
@@ -231,7 +243,10 @@ def export_markdown(location: str = None, start_date: str = None, end_date: str 
     for r in records:
         md_str += f"| {r.id} | {r.location} | {r.date} | {r.min_temperature_k} | {r.max_temperature_k} | {r.description} | {r.timestamp.isoformat() if r.timestamp else ''} |\n"
     filename = f"weather_export{'_' + location if location else ''}{'_' + start_date if start_date else ''}.md"
-    return Response(content=md_str, media_type="text/markdown", headers={"Content-Disposition": f"attachment; filename={filename}"})
+    safe_filename = re.sub(r"[^A-Za-z0-9_.-]", "_", filename)
+    stream = io.StringIO(md_str)
+    headers = {"Content-Disposition": f'attachment; filename="{safe_filename}"'}
+    return StreamingResponse(stream, media_type="text/markdown", headers=headers)
 
 @app.get("/api/export/pdf")
 def export_pdf(location: str = None, start_date: str = None, end_date: str = None, db: Session = Depends(get_db)):

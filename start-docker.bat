@@ -43,8 +43,8 @@ echo ==========================================
 echo Application is running!
 echo ==========================================
 echo Frontend:  http://localhost:3000
-echo Backend:   http://localhost:8000
-echo API Docs:  http://localhost:8000/docs
+echo Backend:   http://localhost:8888
+echo API Docs:  http://localhost:8888/docs
 echo.
 echo Press Ctrl+C to stop
 echo ==========================================

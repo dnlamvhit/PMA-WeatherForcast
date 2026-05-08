@@ -55,7 +55,7 @@ def main():
 
     print("\n✅ Both servers are running!")
     print("👉 Frontend: http://localhost:3000")
-    print("👉 Backend API: http://localhost:8000")
+    print("👉 Backend API: http://localhost:8888")
     print("\nPress Ctrl+C to stop both servers.\n")
 
     try:
@@ -77,7 +77,7 @@ def main():
         subprocess.run(f"taskkill /F /T /PID {frontend_proc.pid}", shell=True, capture_output=True)
         # Also nuke any lingering node/next processes on our ports
         kill_port(3000)
-        kill_port(8000)
+        kill_port(8888)
         print("👋 Goodbye!")
 
 
