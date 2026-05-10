@@ -4,6 +4,10 @@
 **Lam Ngoc Dao**
 Email: [dnlamvhit@gmail.com](mailto:dnlamvhit@gmail.com)
 
+## Demo
+The demo app deployed on local computer and published via NGROK at: https://nautical-skinhead-obliged.ngrok-free.dev (click 'Visit site' at NGROK warning page to access the app at the first time).
+Normal available time: 0900 AM - 1000 PM PDT.
+
 ## Project Overview
 This is a comprehensive weather application built for the PM Accelerator task. It features a Next.js (React) frontend and a Python FastAPI backend with SQLite for database persistence.
 
